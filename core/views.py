@@ -3,6 +3,8 @@ from django.shortcuts import render, redirect
 from core.models import Evento
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
+from datetime import datetime, timedelta
+from django.http.response import Http404, JsonResponse
 
 
 # Create your views here.
@@ -36,7 +38,9 @@ def submit_login(request):
 @login_required(login_url='/login/')
 def lista_eventos(request):
     usuario = request.user
-    evento = Evento.objects.filter(usuario=usuario)
+    data_actual = datetime.now() - timedelta(hours=1)
+    evento = Evento.objects.filter(usuario=usuario,
+                                   data_evento__gt=data_actual)
     dados = {'eventos': evento}
     return render(request, 'agenda.html', dados)
 
@@ -78,5 +82,14 @@ def delete_evento(request, id_evento):
     evento = Evento.objects.get(id=id_evento)
     if usuario == evento.usuario:
         evento.delete()
+    else:
+        raise Http404()
     return redirect('/')
 
+
+@login_required(login_url='/login/')
+def json_lista_evento(request):
+    usuario = User.objects.get(id=id_evento)
+    dados = {'eventos': evento}
+    evento = Evento.objects.filter(usuario=usuario).values('id', 'titulo')
+    return JsonResponse(list(evento), safe=False)
